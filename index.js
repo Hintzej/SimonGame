@@ -8,6 +8,9 @@ const gameStates = Object.freeze({
 
 let currentGameState = gameStates.gameStart;
 
+const buttons = $(".btn");
+const header = $("#level-title");
+
 // define sounds
 const blueSound = new Audio("sounds/blue.mp3");
 const greenSound = new Audio("sounds/green.mp3");
@@ -23,6 +26,9 @@ const buttonSounds = {
     "yellow": yellowSound
 };
 
+let simonList = [];
+let guessCount = 0;
+
 function pressedAnimation(pressedButton) {
     $(pressedButton).addClass("pressed");
     const thisSound = buttonSounds[$(pressedButton).attr("id")];
@@ -35,33 +41,73 @@ function pressedAnimation(pressedButton) {
 
 function getRandomButton() {
     const randomIndex = Math.floor(Math.random() * 4);
-    const randomButton = $(".btn")[randomIndex];
-    console.log(randomButton);
-    return randomButton;
+    return buttons[randomIndex];
 }
 
 function startGame() {
-    // TODO change from intro screen to game
+    currentGameState = gameStates.showSimon;
+    showSimonSays();
+}
+
+function showSimonSays() {
+    // add button to list
+    simonList.push(getRandomButton())
+    $(header).text(`Level ${simonList.length}`);
+    // animate buttons
+    for (let i= 0; i < simonList.length; i++) {
+        setTimeout(function (){
+            pressedAnimation(simonList[i]);
+        }, i * 200)
+    }
+    // end segment after animation
+    setTimeout(function (){
+        currentGameState = gameStates.guessPattern;
+    }, (simonList.length + 1) * 200)
+}
+
+function checkPlayerGuess(pressedButton) {
+    if (pressedButton === simonList[guessCount]) {
+        pressedAnimation(pressedButton);
+        guessCount++;
+        if (guessCount === simonList.length) {
+            guessCount = 0;
+            currentGameState = gameStates.showSimon;
+            showSimonSays();
+        }
+    } else {
+        endGame();
+    }
+}
+
+function endGame() {
+    currentGameState = gameStates.gameEnd;
+    $("body").addClass("game-over");
+    setTimeout(function() {
+        $("body").removeClass("game-over");
+    }, 200);
+    wrongSound.load();
+    wrongSound.play();
+    $(header).text("Press any key to restart.");
 }
 
 function resetGame() {
-    // TODO change from end screen to intro screen
+    currentGameState = gameStates.gameStart;
+    simonList = [];
+    guessCount = 0;
+    $(header).text("Press A Key to Start");
 }
 
 // handle button presses
-$(".btn").on("click", function() {
-    // TODO add check for gamestate
-    // TODO check if button matched pattern
-    getRandomButton();
-    pressedAnimation(this);
+buttons.on("click", function() {
+    if (currentGameState === gameStates.guessPattern) {
+        checkPlayerGuess(this);
+    }
 });
 
 // start and reset game from keyboard
-$(document).onkeydown(function(e) {
-    if (currentGameState === gameStates.gameStart) {
-        if (e.key === 'a') {
-            startGame();
-        }
+$(document).keydown(function(e) {
+    if (currentGameState === gameStates.gameStart && e.key === 'a') {
+        startGame();
     } else if (currentGameState === gameStates.gameEnd) {
         resetGame();
     }
